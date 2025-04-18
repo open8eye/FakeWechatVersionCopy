@@ -77,7 +77,7 @@ def fake_version(wx: Pymem, current_version: str, target_version: str):
     offsets = scan_for_offsets(wx, dll_base, default_hex)
 
     if not offsets:
-        raise Exception("未找到目标偏移地址，请确认版本是否正确。")
+        raise Exception("未找到目标偏移地址，请确认版本是否正确")
     print(f"找到偏移地址: {[hex(offset) for offset in offsets]}")
 
     target_hex = int(convert_version_to_hex(target_version), 16)
@@ -129,4 +129,4 @@ if __name__ == "__main__":
         pm = Pymem("WeChat.exe")
         fake_version(pm, current, target)
     except Exception as e:
-        print(f"{e}，请确认微信程序已经打开！")
+        print(f"{e}\n请确认输入的版本号正确，并确认微信程序已经打开！")
