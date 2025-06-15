@@ -4,7 +4,7 @@ import winreg  # 新增注册表模块
 import subprocess  # 新增
 import time  # 新增
 import json  # 新增
-from typing import Callable, Union
+from typing import Union
 from pymem import Pymem
 from pymem.exception import MemoryReadError
 

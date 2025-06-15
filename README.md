@@ -1,20 +1,19 @@
-# FakeWechatVersion
+# FakeWechatVersionCopy
 
-虚拟windows微信版本，解决微信弹窗 "当前客户端版本过低,请前往应用商店升级到最新版本客户端后再登录"
+复制的 [FakeWechatVersion](https://github.com/ThinkerWen/FakeWechatVersion/)项目 
+只是做了简单的修改用来怎么加易用性，在此十分感谢ThinkerWen
 
 ## 用法：
 
 ### 1. 源码运行:
 ```shell
-git clone https://github.com/ThinkerWen/FakeWechatVersion.git
+git clone https://github.com/open8eye/FakeWechatVersionCopy.git
 cd FakeWechatVersion
-python -m pip install pymem
+pip install -r requirements.txt
 # c为当前微信版本，t为目标微信版本
 python fake_wechat_version.py c=3.9.6.33 t=3.9.12.51
 ```
 
-### 2. 编译版运行
-再 [Release](https://github.com/ThinkerWen/FakeWechatVersion/releases) 页面下载最新版fake_wechat.exe，执行：
-```shell
-fake_wechat.exe c=3.9.6.33 t=3.9.12.51
-```
+### 2. 打包版运行
+在 dist/[fake_wechat_version.exe](dist/fake_wechat_version.exe)目录里下载fake_wechat_version.exe，在根目录里下载[config.json](config.json)
+将两个文件放在一起运行
