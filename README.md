@@ -12,6 +12,8 @@ cd FakeWechatVersion
 pip install -r requirements.txt
 # c为当前微信版本，t为目标微信版本
 python fake_wechat_version.py c=3.9.6.33 t=3.9.12.51
+# 如果 安装了微信 可以直接运行
+python fake_wechat_version.py 
 ```
 
 ### 2. 打包版运行
