@@ -20,7 +20,8 @@ python fake_wechat_version.py
 
 ### 2. 打包版运行
 在 dist/[fake_wechat_version.exe](dist/fake_wechat_version.exe)目录里下载fake_wechat_version.exe，在根目录里下载[config.json](config.json)
-将两个文件放在同一文件夹下，双击fake_wechat_version.exe运行
+将两个文件放在同一文件夹下，双击fake_wechat_version.exe运行。
+等待cmd命令窗口提示成功并自动关闭，再点击登录wx。
 
 ### 3. 配置
 config.json 文件里的version表示替换后的版本号
