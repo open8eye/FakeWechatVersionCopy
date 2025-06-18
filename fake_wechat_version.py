@@ -10,7 +10,7 @@ from pymem.exception import MemoryReadError
 
 current_directory = os.path.dirname(os.path.realpath(sys.argv[0]))
 version = os.path.join(current_directory, 'config.json')
-
+name = 'WeChat.exe'
 
 def scan_for_offsets(wx: Pymem, base_address: int, hex_value: int, total_size: int = 0x10000000,
                      chunk_size: int = 0x1000000) -> list:
@@ -46,6 +46,7 @@ def scan_for_offsets(wx: Pymem, base_address: int, hex_value: int, total_size: i
                 offsets.append(chunk_start + i - len(previous_chunk_tail))
 
         previous_chunk_tail = memory[-overlap_size:]
+        print(f"{chunk_start:08x} - {current_address:08x}...")
 
     return offsets
 
@@ -73,6 +74,7 @@ def fake_version(wx: Pymem, current_version: str, target_version: str):
         fake_version(wx, "3.9.6.33", "3.9.12.51")
     """
     dll_base = 0
+    print("开始寻找WeChatWin.dll")
     for m in list(wx.list_modules()):
         path = m.filename
         if path.endswith("WeChatWin.dll"):
@@ -80,6 +82,7 @@ def fake_version(wx: Pymem, current_version: str, target_version: str):
             break
 
     # 动态扫描偏移地址
+    print("动态扫描偏移地址")
     default_hex = int(current_version, 16)  # 直接解析十六进制字符串
     offsets = scan_for_offsets(wx, dll_base, default_hex)
 
@@ -178,17 +181,38 @@ if __name__ == "__main__":
 
     # 新增启动微信逻辑
     if install_path:
-        wechat_exe = os.path.join(install_path, 'WeChat.exe')
+        wechat_exe = os.path.join(install_path, name)
         if os.path.exists(wechat_exe):
+            num = 10
             print(f"启动微信进程: {wechat_exe}")
             subprocess.Popen(wechat_exe)
-            time.sleep(5)  # 等待模块加载
+            # 新增进程检测逻辑
+            while True:
+                try:
+                    if num <= 0:
+                        print("微信进程启动失败")
+                        sys.exit(1)
+                    output = subprocess.check_output(
+                        ['tasklist', '/FI', f'IMAGENAME eq {name}'],
+                        stderr=subprocess.STDOUT,
+                        text=True
+                    )
+                    print('检查微信进程...')
+                    if name in output:
+                        print('微信进程已启动')
+                        break
+                except:
+                    pass
+                time.sleep(0.5)
+                num -= 0.5
         else:
-            print(f"警告: WeChat.exe 未找到于 {wechat_exe}")
+            print(f"警告: {name} 未找到于 {wechat_exe}")
 
     try:
-        pm = Pymem("WeChat.exe")
+        print("读取微信程序内存...")
+        pm = Pymem(name)
+        print("微信程序已读取，开始伪装版本")
         fake_version(pm, current_hex, target)
     except Exception as e:
         print(f"{e}\n请确认输入的版本号正确，并确认微信程序已经打开！")
-        #  pyinstaller --onefile .\timed_task.py
+        #  pyinstaller --onefile .\fake_wechat_version.py
