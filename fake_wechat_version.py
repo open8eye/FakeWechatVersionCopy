@@ -1,9 +1,13 @@
+import re
 import os
 import sys
-import winreg  # 新增注册表模块
-import subprocess  # 新增
-import time  # 新增
-import json  # 新增
+import json
+import time
+import winreg
+import win32gui
+import requests
+import subprocess
+import win32process
 from typing import Union
 from pymem import Pymem
 from pymem.exception import MemoryReadError
@@ -11,6 +15,8 @@ from pymem.exception import MemoryReadError
 current_directory = os.path.dirname(os.path.realpath(sys.argv[0]))
 version = os.path.join(current_directory, 'config.json')
 name = 'WeChat.exe'
+wx_window = None
+
 
 def scan_for_offsets(wx: Pymem, base_address: int, hex_value: int, total_size: int = 0x10000000,
                      chunk_size: int = 0x1000000) -> list:
@@ -103,6 +109,9 @@ def fake_version(wx: Pymem, current_version: str, target_version: str):
         wx.write_uint(addr, target_hex)
 
     print(f"微信版本伪装从 {current_version} 到 {target_version} 完成")
+    window_control(cur_windows=wx_window, command=9)
+    printf('还原微信窗口,请登录微信', 32)
+    time.sleep(3)
 
 
 def convert_version_to_hex(version: str) -> str:
@@ -142,6 +151,68 @@ def read_json_file(file_path: str) -> Union[dict, None]:
     return None
 
 
+def find_window_by_pid(pid):
+    """查找指定PID对应的窗口句柄"""
+    result = []
+
+    def callback(hwnd, ctx):
+        if win32gui.IsWindowVisible(hwnd) and win32gui.IsWindowEnabled(hwnd):
+            _, window_pid = win32process.GetWindowThreadProcessId(hwnd)
+            if window_pid == pid:
+                result.append(hwnd)
+        return True
+
+    win32gui.EnumWindows(callback, None)
+    return result
+
+
+# 6 最小化 3 最大化 9 还原 10 关闭 11
+def window_control(pid=None, cur_windows=None, command=6):
+    if cur_windows:
+        for hwnd in cur_windows:
+            win32gui.ShowWindow(hwnd, command)
+        return cur_windows
+    windows = find_window_by_pid(pid)
+    if not pid:
+        printf("请输入PID")
+        return None
+    if not windows:
+        printf(f"未找到PID为 {pid} 的可见窗口")
+        return None
+    for hwnd in windows:
+        win32gui.ShowWindow(hwnd, command)
+    return windows
+
+
+# 更新配置文件的version
+def update_config_file(config_json):
+    result = config_json.get("version", "3.9.12.51")
+    update_version_urls = config_json.get("update_version_urls", [])
+    remote_config = None
+    for url in update_version_urls:
+        print(f"正在获取版本信息: {url}")
+        try:
+            response = requests.get(url, timeout=5)  # 设置超时时间为5秒
+            if response.status_code == 200:
+                remote_config = response.json()
+                break
+        except Exception as e:
+            printf(f'获取版本信息失败: {e}')
+    print(f"远程版本: {remote_config}")
+    if remote_config:
+        remote_version = remote_config.get("version", result)
+        if result != remote_version:
+            local_versions = re.findall(r'\d', result)
+            remote_versions = re.findall(r'\d', remote_version)
+            if remote_versions > local_versions:
+                result = remote_version
+    return result
+
+
+def printf(text, color=31):
+    print(f"\033[{color}m{text}\033[0m")
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
     current = None
@@ -154,7 +225,7 @@ if __name__ == "__main__":
             target = arg.split("=")[1]
 
     current_hex = convert_version_to_hex(current) if current else None
-    install_path = None  # 新增安装路径变量
+    install_path = None  # 安装路径变量
 
     if not current_hex:
         try:
@@ -165,14 +236,18 @@ if __name__ == "__main__":
             install_path, _ = winreg.QueryValueEx(key, "InstallPath")
             winreg.CloseKey(key)
         except Exception as e:
-            print(f"读取注册表失败: {e}")
+            printf(f'读取注册表失败: {e}')
             sys.exit(1)
 
     if not target:
         try:
-            target = read_json_file("config.json")["version"]
+            config = read_json_file("config.json")
+            target = config.get("version")
+            is_update_version = config.get("is_update_version")
+            if is_update_version:
+                target = update_config_file(config)
         except Exception as e:
-            print(f"读取配置文件失败: {e}")
+            printf(f'读取配置文件失败: {e}')
             sys.exit(1)
 
     if not current_hex or not target:
@@ -185,7 +260,8 @@ if __name__ == "__main__":
         if os.path.exists(wechat_exe):
             num = 10
             print(f"启动微信进程: {wechat_exe}")
-            subprocess.Popen(wechat_exe)
+            wechat_process = subprocess.Popen(wechat_exe)
+            print("微信进程id", wechat_process.pid)
             # 新增进程检测逻辑
             while True:
                 try:
@@ -200,13 +276,16 @@ if __name__ == "__main__":
                     print('检查微信进程...')
                     if name in output:
                         print('微信进程已启动')
+                        time.sleep(1)
+                        wx_window = window_control(wechat_process.pid)
+                        printf('最小化微信窗口,等待伪装完成后显示', 32)
                         break
                 except:
                     pass
                 time.sleep(0.5)
                 num -= 0.5
         else:
-            print(f"警告: {name} 未找到于 {wechat_exe}")
+            printf(f'警告: {name} 未找到于 {wechat_exe}')
 
     try:
         print("读取微信程序内存...")
@@ -214,5 +293,6 @@ if __name__ == "__main__":
         print("微信程序已读取，开始伪装版本")
         fake_version(pm, current_hex, target)
     except Exception as e:
-        print(f"{e}\n请确认输入的版本号正确，并确认微信程序已经打开！")
+        printf(f'{e}\n请确认输入的版本号正确，并确认微信程序已经打开！')
+
         #  pyinstaller --onefile .\fake_wechat_version.py
