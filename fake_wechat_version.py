@@ -295,4 +295,4 @@ if __name__ == "__main__":
     except Exception as e:
         printf(f'{e}\n请确认输入的版本号正确，并确认微信程序已经打开！')
 
-        #  pyinstaller --onefile --name "RDP助手" .\fake_wechat_version.py
+        #  pyinstaller --onefile .\fake_wechat_version.py
