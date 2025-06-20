@@ -209,7 +209,7 @@ def save_file(content, file_path, mode="w", encoding="utf-8"):
         None
     """
     try:
-        with open(file_path, mode, encoding=encoding if "b" not in mode else None) as f:
+        with open(file_path, mode, encoding=encoding) as f:
             f.write(content)
         print(f"文件已成功保存到 {file_path}")
     except Exception as e:
@@ -273,7 +273,6 @@ try:
             result = remote_version
             config['version'] = result
             save_file(config, config_path)
-            print(f"保存文件成功")
             repo.commit_and_push(message=f"自动更新版本号: {result}", files=[config_path])
 
 except Exception as e:
