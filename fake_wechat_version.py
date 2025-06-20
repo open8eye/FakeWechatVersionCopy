@@ -12,6 +12,8 @@ from typing import Union
 from pymem import Pymem
 from pymem.exception import MemoryReadError
 
+#  pipreqs ./ --encoding=utf8  --force
+
 current_directory = os.path.dirname(os.path.realpath(sys.argv[0]))
 version = os.path.join(current_directory, 'config.json')
 name = 'WeChat.exe'
