@@ -185,6 +185,7 @@ def window_control(pid=None, cur_windows=None, command=6):
         win32gui.ShowWindow(hwnd, command)
     return windows
 
+
 def save_file(content, file_path, mode="w", encoding="utf-8"):
     """
     将内容保存到文件
@@ -230,7 +231,7 @@ def update_config_file(config_json):
             if remote_versions > local_versions:
                 result = remote_version
                 config_json["version"] = result
-                save_file(config_json, current_directory)
+                save_file(json.dumps(config_json, ensure_ascii=False, indent=4), current_directory)
     return result
 
 
@@ -269,10 +270,11 @@ if __name__ == "__main__":
             if not os.path.exists(version):
                 printf("配置文件不存在，下载配置文件")
                 # 下载
-                response = requests.get("https://gitee.com/lulendi/FakeWechatVersionCopy/raw/main/config.json", timeout=5)  # 设置超时时间为5秒
+                response = requests.get("https://gitee.com/lulendi/FakeWechatVersionCopy/raw/main/config.json",
+                                        timeout=5)  # 设置超时时间为5秒
                 if response.status_code == 200:
                     remote_config = response.json()
-                    save_file(remote_config, current_directory)
+                    save_file(json.dumps(remote_config, ensure_ascii=False, indent=4), current_directory)
             else:
                 config = read_json_file(version)
                 target = config.get("version")
