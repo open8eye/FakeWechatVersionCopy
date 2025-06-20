@@ -185,9 +185,30 @@ def window_control(pid=None, cur_windows=None, command=6):
         win32gui.ShowWindow(hwnd, command)
     return windows
 
+def save_file(content, file_path, mode="w", encoding="utf-8"):
+    """
+    将内容保存到文件
+
+    参数:
+        content (str/bytes): 需要保存的内容（文本或二进制数据）
+        file_path (str): 文件保存路径
+        mode (str): 打开文件的模式（默认"w"，写入文本）
+        encoding (str): 文件编码（默认"utf-8"，二进制模式下忽略）
+
+    返回:
+        None
+    """
+    try:
+        with open(file_path, mode, encoding=encoding if "b" not in mode else None) as f:
+            f.write(content)
+        print(f"文件已成功保存到 {file_path}")
+    except Exception as e:
+        print(f"保存文件时出错: {e}")
+
 
 # 更新配置文件的version
 def update_config_file(config_json):
+    global current_directory
     result = config_json.get("version", "3.9.12.51")
     update_version_urls = config_json.get("update_version_urls", [])
     remote_config = None
@@ -208,6 +229,8 @@ def update_config_file(config_json):
             remote_versions = re.findall(r'\d', remote_version)
             if remote_versions > local_versions:
                 result = remote_version
+                config_json["version"] = result
+                save_file(config_json, current_directory)
     return result
 
 
@@ -243,11 +266,19 @@ if __name__ == "__main__":
 
     if not target:
         try:
-            config = read_json_file("config.json")
-            target = config.get("version")
-            is_update_version = config.get("is_update_version")
-            if is_update_version:
-                target = update_config_file(config)
+            if not os.path.exists(version):
+                printf("配置文件不存在，下载配置文件")
+                # 下载
+                response = requests.get("https://gitee.com/lulendi/FakeWechatVersionCopy/raw/main/config.json", timeout=5)  # 设置超时时间为5秒
+                if response.status_code == 200:
+                    remote_config = response.json()
+                    save_file(remote_config, current_directory)
+            else:
+                config = read_json_file(version)
+                target = config.get("version")
+                is_update_version = config.get("is_update_version")
+                if is_update_version:
+                    target = update_config_file(config)
         except Exception as e:
             printf(f'读取配置文件失败: {e}')
             sys.exit(1)
