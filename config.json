@@ -1,0 +1,8 @@
+{
+  "version": "3.9.12.45",
+  "is_update_version": false,
+  "update_version_urls": [
+    "https://gitee.com/lulendi/FakeWechatVersionCopy/raw/main/config.json",
+    "https://raw.githubusercontent.com/open8eye/FakeWechatVersionCopy/main/config.json"
+  ]
+}
