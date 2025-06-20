@@ -235,6 +235,56 @@ def update_config_file(config_json):
     return result
 
 
+def download_file(url, save_folder, filename=None):
+    """
+    从指定 URL 下载文件并保存到指定文件夹
+
+    参数:
+    url (str): 文件的下载链接
+    save_folder (str): 保存文件的文件夹路径
+    filename (str, 可选): 保存的文件名，默认为 None，自动从 URL 中提取
+
+    返回:
+    str: 保存文件的完整路径，如果下载失败则返回 None
+    """
+    # 确保保存文件夹存在
+    os.makedirs(save_folder, exist_ok=True)
+
+    # 如果未指定文件名，则从 URL 中提取
+    if not filename:
+        filename = os.path.basename(url)
+
+    # 构建保存文件的完整路径
+    save_path = os.path.join(save_folder, filename)
+
+    try:
+        # 发送 HTTP 请求，stream=True 用于下载大文件
+        response = requests.get(url, stream=True, timeout=30)
+        response.raise_for_status()  # 检查请求是否成功
+
+        # 获取文件总大小（字节）
+        total_size = int(response.headers.get('Content-Length', 0))
+        print(f"文件大小: {total_size / 1024 / 1024:.2f} MB")
+        downloaded_size = 0
+
+        # 写入文件
+        with open(save_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:  # 过滤掉空块
+                    file.write(chunk)
+                    downloaded_size += len(chunk)
+                print(f"\r已下载: {downloaded_size / 1024 / 1024:.2f} MB", end='')
+
+        print("\n下载完成")  # 下载完成后换行显示
+        return save_path
+    except requests.exceptions.RequestException as e:
+        print(f"\n下载失败: {e}")
+        return None
+    except Exception as e:
+        print(f"\n发生错误: {e}")
+        return None
+
+
 def printf(text, color=31):
     print(f"\033[{color}m{text}\033[0m")
 
@@ -269,18 +319,12 @@ if __name__ == "__main__":
         try:
             if not os.path.exists(version):
                 printf("配置文件不存在，下载配置文件")
-                # 下载
-                response = requests.get("https://gitee.com/lulendi/FakeWechatVersionCopy/raw/main/config.json",
-                                        timeout=5)  # 设置超时时间为5秒
-                if response.status_code == 200:
-                    remote_config = response.json()
-                    save_file(json.dumps(remote_config, ensure_ascii=False, indent=4), current_directory)
-            else:
-                config = read_json_file(version)
-                target = config.get("version")
-                is_update_version = config.get("is_update_version")
-                if is_update_version:
-                    target = update_config_file(config)
+                download_file("https://gitee.com/lulendi/FakeWechatVersionCopy/raw/main/config.json", current_directory)
+            config = read_json_file(version)
+            target = config.get("version")
+            is_update_version = config.get("is_update_version")
+            if is_update_version:
+                target = update_config_file(config)
         except Exception as e:
             printf(f'读取配置文件失败: {e}')
             sys.exit(1)
